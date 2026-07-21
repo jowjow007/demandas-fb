@@ -229,6 +229,135 @@
     color:#fff;
   }
 
+  .mode-tabs{
+    display:inline-flex;
+    gap:2px;
+    padding:3px;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:9px;
+    align-self:flex-start;
+  }
+  .mode-tab{
+    font-family:'Libre Franklin', sans-serif;
+    font-size:12.8px;
+    font-weight:600;
+    padding:8px 14px;
+    border:none;
+    border-radius:6px;
+    background:none;
+    color:var(--ink-soft);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .mode-tab:hover{color:var(--ink);}
+  .mode-tab[aria-pressed="true"]{
+    background:var(--surface);
+    color:var(--wine-700);
+    box-shadow:var(--shadow);
+  }
+  @media (max-width:560px){
+    .mode-tabs{width:100%;}
+    .mode-tab{flex:1;}
+  }
+
+  .person-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    width:100%;
+    text-align:left;
+    padding:11px 10px;
+    border:none;
+    background:none;
+    border-radius:7px;
+    cursor:pointer;
+    font-family:inherit;
+    color:var(--ink);
+    font-size:14px;
+  }
+  .person-item:hover{background:var(--surface-2);}
+  .person-item.active{background:var(--sev-alta-bg);}
+  .person-item.active .person-name{color:var(--wine-700); font-weight:600;}
+  .person-avatar{
+    width:30px;height:30px;border-radius:50%;flex:none;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--wine-700);color:#fff;
+    font-family:'Cormorant Garamond',serif;font-weight:600;font-size:14px;
+  }
+  .person-name{flex:1;min-width:0;}
+  .person-count{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:999px;
+    padding:2px 8px;
+    flex:none;
+    font-variant-numeric:tabular-nums;
+  }
+
+  .person-summary{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:20px;
+    padding-bottom:20px;
+    border-bottom:1px solid var(--border);
+  }
+  .person-summary .person-avatar{width:48px;height:48px;font-size:20px;}
+  .person-summary h2{
+    margin:0;
+    font-family:'Cormorant Garamond', serif;
+    font-weight:600;
+    font-size:24px;
+    color:var(--ink);
+  }
+  .person-summary p{
+    margin:2px 0 0;
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+
+  .assign-list{display:flex; flex-direction:column; gap:8px;}
+  .assign-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    width:100%;
+    text-align:left;
+    padding:12px 14px;
+    border:1px solid var(--border);
+    background:var(--surface-2);
+    border-radius:8px;
+    cursor:pointer;
+    font-family:inherit;
+    color:var(--ink);
+  }
+  .assign-row:hover{border-color:var(--wine-500);}
+  .assign-main{flex:1; min-width:0;}
+  .assign-cat{
+    display:block;
+    font-size:10.5px;
+    font-weight:600;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--pewter);
+    margin-bottom:2px;
+  }
+  .assign-tipo{font-size:14.5px; font-weight:600;}
+  .assign-other{
+    font-size:12px;
+    color:var(--ink-soft);
+    text-align:right;
+    flex:none;
+    max-width:180px;
+  }
+  .assign-other b{color:var(--ink); font-weight:600; display:block; font-size:12.5px;}
+  @media (max-width:560px){
+    .assign-other{display:none;}
+  }
+
   .summary-row{
     display:flex;
     align-items:baseline;
@@ -513,6 +642,11 @@
   </header>
 
   <div class="controls">
+    <div class="mode-tabs" id="modeTabs" role="tablist" aria-label="Consultar por">
+      <button class="mode-tab" type="button" data-mode="tipo" aria-pressed="true">Tipo de Peça</button>
+      <button class="mode-tab" type="button" data-mode="responsavel" aria-pressed="false">Responsável</button>
+      <button class="mode-tab" type="button" data-mode="revisor" aria-pressed="false">Revisor/Orientador</button>
+    </div>
     <div class="search-row">
       <div class="search-box">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -532,7 +666,7 @@
   </div>
 
   <div class="console">
-    <nav class="panel list-panel" id="listPanel" aria-label="Tipos de peça"></nav>
+    <nav class="panel list-panel" id="listPanel" aria-label="Resultados"></nav>
 
     <section class="panel detail-panel" id="detailPanel">
       <div class="detail-empty">
@@ -666,12 +800,22 @@ function sevClass(comp){
   return ['','baixa','media','alta','altissima'][sevLevel(comp)];
 }
 
-let state = { q:'', cats:new Set(), showSugg:true, selected:null };
+const PLACEHOLDER_NAMES = new Set(['Responsável do processo','Todos']);
+const MODE_FIELD = { responsavel:3, revisor:4 };
+const MODE_LABEL = {
+  tipo: { placeholder:'Buscar tipo de peça — ex.: agravo, contestação, alimentos…', aria:'Buscar tipo de peça', list:'Tipos de peça' },
+  responsavel: { placeholder:'Buscar pelo nome do responsável…', aria:'Buscar responsável', list:'Responsáveis' },
+  revisor: { placeholder:'Buscar pelo nome do revisor ou orientador…', aria:'Buscar revisor ou orientador', list:'Revisores e orientadores' }
+};
+
+let state = { mode:'tipo', q:'', cats:new Set(), showSugg:true, selected:null, selectedPerson:null };
 
 const listPanel = document.getElementById('listPanel');
 const detailPanel = document.getElementById('detailPanel');
 const summaryRow = document.getElementById('summaryRow');
 const catChips = document.getElementById('catChips');
+const modeTabs = document.getElementById('modeTabs');
+const qInput = document.getElementById('q');
 const toast = document.getElementById('toast');
 
 function buildChips(){
@@ -692,14 +836,45 @@ function norm(s){
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 }
 
-function filtered(){
-  const q = norm(state.q.trim());
+function initials(name){
+  return name.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+}
+
+// Filtro base: categoria + inclusão de sugestões (comum a todos os modos)
+function baseFiltered(){
   return ROWS.filter(r=>{
     if(!state.showSugg && r[6]==='sugestao') return false;
     if(state.cats.size && !state.cats.has(r[0])) return false;
+    return true;
+  });
+}
+
+// Modo "Tipo de Peça": aplica também a busca por tipo/categoria
+function filteredTipos(){
+  const q = norm(state.q.trim());
+  return baseFiltered().filter(r=>{
     if(q && !(norm(r[1]).includes(q) || norm(r[0]).includes(q))) return false;
     return true;
   });
+}
+
+function extractNames(str){
+  if(!str) return [];
+  return str.split(',').map(s=>s.trim()).filter(Boolean);
+}
+
+// Modos "Responsável" / "Revisor": agrupa linhas por pessoa no campo escolhido
+function peopleMap(fieldIdx){
+  const rows = baseFiltered();
+  const map = new Map();
+  for(const r of rows){
+    for(const n of extractNames(r[fieldIdx])){
+      if(PLACEHOLDER_NAMES.has(n)) continue;
+      if(!map.has(n)) map.set(n, []);
+      map.get(n).push(r);
+    }
+  }
+  return map;
 }
 
 function groupByCat(rows){
@@ -712,7 +887,36 @@ function groupByCat(rows){
 }
 
 function render(){
-  const rows = filtered();
+  if(state.mode === 'tipo'){
+    renderTipoList();
+    if(state.selected!==null){
+      const rows = filteredTipos();
+      if(rows.includes(ROWS[state.selected])) renderTipoDetail(ROWS[state.selected]);
+      else detailPanel.innerHTML = `<div class="detail-empty"><p>O item selecionado não está no filtro atual.</p></div>`;
+    } else {
+      detailPanel.innerHTML = `<div class="detail-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>
+        <p>Escolha um tipo de peça à esquerda para ver quem é o responsável, o revisor e para onde protocolar.</p>
+      </div>`;
+    }
+  } else {
+    renderPeopleList();
+    if(state.selectedPerson){
+      const map = peopleMap(MODE_FIELD[state.mode]);
+      if(map.has(state.selectedPerson)) renderPersonDetail(state.selectedPerson, map.get(state.selectedPerson));
+      else detailPanel.innerHTML = `<div class="detail-empty"><p>Essa pessoa não aparece no filtro atual.</p></div>`;
+    } else {
+      const label = state.mode==='responsavel' ? 'responsável' : 'revisor(a) ou orientador(a)';
+      detailPanel.innerHTML = `<div class="detail-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg>
+        <p>Escolha um(a) ${label} à esquerda para ver todas as peças pelas quais ele(a) responde.</p>
+      </div>`;
+    }
+  }
+}
+
+function renderTipoList(){
+  const rows = filteredTipos();
   const total = rows.length;
   const sugg = rows.filter(r=>r[6]==='sugestao').length;
   summaryRow.innerHTML = `<span><strong>${total}</strong> tipo${total===1?'':'s'} de peça encontrado${total===1?'':'s'}</span>` +
@@ -720,42 +924,57 @@ function render(){
 
   if(!rows.length){
     listPanel.innerHTML = `<div class="empty-list">Nenhum tipo de peça encontrado para esse filtro.</div>`;
-  } else {
-    const grouped = groupByCat(rows);
-    let html = '';
-    for(const [cat, items] of grouped){
-      html += `<div class="cat-group"><div class="cat-label">${cat}</div>`;
-      for(const r of items){
-        const idx = ROWS.indexOf(r);
-        const active = state.selected===idx ? ' active' : '';
-        html += `<button class="item${active}" type="button" data-idx="${idx}">
-          <span class="item-sev sd ${sevClass(r[2])}" style="background:var(--sev-${sevClass(r[2])})"></span>
-          <span class="item-title">${r[1]}</span>
-          ${r[6]==='sugestao' ? '<span class="item-badge">sugestão</span>' : ''}
-        </button>`;
-      }
-      html += `</div>`;
+    return;
+  }
+  const grouped = groupByCat(rows);
+  let html = '';
+  for(const [cat, items] of grouped){
+    html += `<div class="cat-group"><div class="cat-label">${cat}</div>`;
+    for(const r of items){
+      const idx = ROWS.indexOf(r);
+      const active = state.selected===idx ? ' active' : '';
+      html += `<button class="item${active}" type="button" data-idx="${idx}">
+        <span class="item-sev sd ${sevClass(r[2])}" style="background:var(--sev-${sevClass(r[2])})"></span>
+        <span class="item-title">${r[1]}</span>
+        ${r[6]==='sugestao' ? '<span class="item-badge">sugestão</span>' : ''}
+      </button>`;
     }
-    listPanel.innerHTML = html;
+    html += `</div>`;
   }
+  listPanel.innerHTML = html;
+}
 
-  if(state.selected!==null && rows.includes(ROWS[state.selected])){
-    renderDetail(ROWS[state.selected]);
-  } else if(state.selected!==null){
-    detailPanel.innerHTML = `<div class="detail-empty"><p>O item selecionado não está no filtro atual.</p></div>`;
+function renderPeopleList(){
+  const fieldIdx = MODE_FIELD[state.mode];
+  const map = peopleMap(fieldIdx);
+  const q = norm(state.q.trim());
+  const names = [...map.keys()]
+    .filter(n => !q || norm(n).includes(q))
+    .sort((a,b)=>a.localeCompare(b,'pt-BR'));
+
+  const roleWord = state.mode==='responsavel' ? 'responsável' : 'revisor(a)/orientador(a)';
+  summaryRow.innerHTML = `<span><strong>${names.length}</strong> ${names.length===1?roleWord:roleWord+'(s)'} encontrado${names.length===1?'':'s'}</span>`;
+
+  if(!names.length){
+    listPanel.innerHTML = `<div class="empty-list">Nenhuma pessoa encontrada para esse filtro.</div>`;
+    return;
   }
+  listPanel.innerHTML = names.map(n=>{
+    const active = state.selectedPerson===n ? ' active' : '';
+    return `<button class="person-item${active}" type="button" data-name="${n.replace(/"/g,'&quot;')}">
+      <span class="person-avatar">${initials(n)}</span>
+      <span class="person-name">${n}</span>
+      <span class="person-count">${map.get(n).length}</span>
+    </button>`;
+  }).join('');
 }
 
 function chips(str){
   if(!str) return `<span class="value pending">A definir</span>`;
   return str.split(',').map(s=>`<span class="name-chip">${s.trim()}</span>`).join('');
 }
-function chipsEmph(str){
-  if(!str) return `<span class="value pending">A definir</span>`;
-  return `<div class="field emphasis-wrap">` + str.split(',').map(s=>`<span class="name-chip">${s.trim()}</span>`).join('') + `</div>`;
-}
 
-function renderDetail(r){
+function renderTipoDetail(r){
   const [cat, tipo, comp, resp, rev, prot, status] = r;
   const sc = sevClass(comp);
   detailPanel.innerHTML = `
@@ -803,6 +1022,50 @@ function renderDetail(r){
   });
 }
 
+function renderPersonDetail(name, rows){
+  const fieldIdx = MODE_FIELD[state.mode];
+  const otherIdx = fieldIdx===3 ? 4 : 3;
+  const otherLabel = fieldIdx===3 ? 'Revisor' : 'Responsável';
+  const roleTitle = state.mode==='responsavel' ? 'Responsável em' : 'Revisor(a)/Orientador(a) em';
+  const sorted = [...rows].sort((a,b)=> a[0].localeCompare(b[0],'pt-BR') || a[1].localeCompare(b[1],'pt-BR'));
+
+  detailPanel.innerHTML = `
+    <div class="person-summary">
+      <span class="person-avatar">${initials(name)}</span>
+      <div>
+        <h2>${name}</h2>
+        <p>${roleTitle} ${rows.length} tipo${rows.length===1?'':'s'} de peça</p>
+      </div>
+    </div>
+    <div class="assign-list">
+      ${sorted.map(r=>{
+        const idx = ROWS.indexOf(r);
+        const sc = sevClass(r[2]);
+        const otherVal = r[otherIdx] || '—';
+        return `<button class="assign-row" type="button" data-idx="${idx}">
+          <span class="item-sev sd ${sc}" style="background:var(--sev-${sc})"></span>
+          <span class="assign-main">
+            <span class="assign-cat">${r[0]}</span>
+            <span class="assign-tipo">${r[1]}</span>
+          </span>
+          <span class="assign-other"><b>${otherLabel}</b>${otherVal}</span>
+        </button>`;
+      }).join('')}
+    </div>
+    <div class="detail-actions">
+      <button class="btn primary" id="copyListBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+        Copiar lista
+      </button>
+    </div>
+  `;
+  document.getElementById('copyListBtn').addEventListener('click', ()=>{
+    const text = `${name} — ${roleTitle.toLowerCase()} ${rows.length} tipo(s) de peça:\n` +
+      sorted.map(r=>`- ${r[1]} (${r[0]})`).join('\n');
+    navigator.clipboard.writeText(text).then(()=>showToast('Copiado para a área de transferência')).catch(()=>showToast('Não foi possível copiar'));
+  });
+}
+
 let toastTimer;
 function showToast(msg){
   toast.textContent = msg;
@@ -812,16 +1075,53 @@ function showToast(msg){
 }
 
 listPanel.addEventListener('click', e=>{
-  const b = e.target.closest('.item');
-  if(!b) return;
-  state.selected = Number(b.dataset.idx);
-  render();
-  if(window.innerWidth <= 860){
-    detailPanel.scrollIntoView({behavior:'smooth', block:'start'});
+  const itemBtn = e.target.closest('.item');
+  if(itemBtn){
+    state.selected = Number(itemBtn.dataset.idx);
+    render();
+    if(window.innerWidth <= 860) detailPanel.scrollIntoView({behavior:'smooth', block:'start'});
+    return;
+  }
+  const personBtn = e.target.closest('.person-item');
+  if(personBtn){
+    state.selectedPerson = personBtn.dataset.name;
+    render();
+    if(window.innerWidth <= 860) detailPanel.scrollIntoView({behavior:'smooth', block:'start'});
   }
 });
 
-document.getElementById('q').addEventListener('input', e=>{
+detailPanel.addEventListener('click', e=>{
+  const assignBtn = e.target.closest('.assign-row');
+  if(!assignBtn) return;
+  state.mode = 'tipo';
+  state.q = '';
+  qInput.value = '';
+  state.selected = Number(assignBtn.dataset.idx);
+  updateModeUI();
+  render();
+});
+
+function updateModeUI(){
+  modeTabs.querySelectorAll('.mode-tab').forEach(b=>{
+    b.setAttribute('aria-pressed', String(b.dataset.mode===state.mode));
+  });
+  const cfg = MODE_LABEL[state.mode];
+  qInput.placeholder = cfg.placeholder;
+  qInput.setAttribute('aria-label', cfg.aria);
+  listPanel.setAttribute('aria-label', cfg.list);
+}
+
+modeTabs.addEventListener('click', e=>{
+  const b = e.target.closest('.mode-tab');
+  if(!b || b.dataset.mode===state.mode) return;
+  state.mode = b.dataset.mode;
+  state.q = '';
+  qInput.value = '';
+  updateModeUI();
+  render();
+});
+
+qInput.addEventListener('input', e=>{
   state.q = e.target.value;
   render();
 });
@@ -831,5 +1131,6 @@ document.getElementById('toggleSugg').addEventListener('change', e=>{
 });
 
 buildChips();
+updateModeUI();
 render();
 </script>
