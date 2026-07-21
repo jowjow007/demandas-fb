@@ -183,26 +183,32 @@
   .search-box svg{
     position:absolute; left:13px; top:50%; transform:translateY(-50%);
     width:16px;height:16px; color:var(--ink-soft); pointer-events:none;
+    transition:color .15s ease, transform .15s ease;
   }
+  .search-box:focus-within svg{color:var(--wine-700); transform:translateY(-50%) scale(1.12);}
   .sugg-toggle{
-    display:flex; align-items:center; gap:8px;
+    display:flex; align-items:center; gap:7px;
     font-size:13px; color:var(--ink-soft);
     white-space:nowrap;
     padding:0 4px;
+    cursor:pointer;
   }
   .switch{
     position:relative; width:34px; height:20px; flex:none;
   }
-  .switch input{position:absolute; inset:0; opacity:0; margin:0; cursor:pointer;}
+  .switch input{position:absolute; inset:0; opacity:0; margin:0; cursor:pointer; z-index:1;}
   .switch .track{
     position:absolute; inset:0; background:var(--border); border-radius:999px; transition:background .15s;
   }
   .switch .thumb{
     position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%;
     background:var(--surface); box-shadow:var(--shadow); transition:transform .15s;
+    display:flex; align-items:center; justify-content:center;
   }
+  .switch .thumb svg{width:9px; height:9px; color:var(--wine-700); opacity:0; transition:opacity .15s, transform .2s;}
   .switch input:checked + .track{background:var(--wine-700);}
   .switch input:checked + .track + .thumb{transform:translateX(14px);}
+  .switch input:checked ~ .thumb svg{opacity:1; transform:scale(1);}
 
   .chip-row{
     display:flex;
@@ -210,6 +216,9 @@
     gap:8px;
   }
   .chip{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
     font-family:'Libre Franklin', sans-serif;
     font-size:12.5px;
     font-weight:500;
@@ -228,6 +237,37 @@
     border-color:var(--wine-700);
     color:#fff;
   }
+  .chip-icon{flex:none; transition:transform .2s cubic-bezier(.34,1.56,.64,1);}
+  .chip:hover .chip-icon, .chip:focus-visible .chip-icon{transform:scale(1.2) rotate(-6deg);}
+
+  .tab-icon{flex:none; transition:transform .2s cubic-bezier(.34,1.56,.64,1);}
+  .mode-tab:hover .tab-icon{transform:scale(1.18);}
+  .mode-tab[aria-pressed="true"] .tab-icon{transform:scale(1.1);}
+
+  .field-icon{flex:none; color:var(--pewter); transition:transform .2s cubic-bezier(.34,1.56,.64,1), color .18s ease;}
+  .field:hover .field-icon{transform:scale(1.25) rotate(-4deg); color:var(--wine-600);}
+
+  .row-chevron{
+    flex:none;
+    color:var(--pewter);
+    opacity:0;
+    transform:translateX(-5px);
+    transition:opacity .16s ease, transform .16s ease, color .16s ease;
+  }
+  .item:hover .row-chevron, .item:focus-visible .row-chevron,
+  .person-item:hover .row-chevron, .person-item:focus-visible .row-chevron,
+  .assign-row:hover .row-chevron, .assign-row:focus-visible .row-chevron{
+    opacity:1; transform:translateX(0); color:var(--wine-600);
+  }
+
+  .sugg-icon{flex:none; color:var(--pewter); transition:transform .2s cubic-bezier(.34,1.56,.64,1), color .18s ease;}
+  .sugg-toggle:hover .sugg-icon{transform:scale(1.25) rotate(-10deg); color:var(--wine-600);}
+
+  @keyframes popIn{0%{transform:scale(.4) rotate(-15deg); opacity:0;}60%{transform:scale(1.25) rotate(4deg);}100%{transform:scale(1) rotate(0); opacity:1;}}
+  .pop-icon{animation:popIn .32s ease;}
+
+  @keyframes floaty{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+  .detail-empty svg{animation:floaty 3.2s ease-in-out infinite;}
 
   .mode-tabs{
     display:inline-flex;
@@ -239,6 +279,9 @@
     align-self:flex-start;
   }
   .mode-tab{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
     font-family:'Libre Franklin', sans-serif;
     font-size:12.8px;
     font-weight:600;
@@ -510,7 +553,9 @@
   @media (max-width:560px){ .field-grid{grid-template-columns:1fr;} }
 
   .field label{
-    display:block;
+    display:flex;
+    align-items:center;
+    gap:6px;
     font-size:11.5px;
     font-weight:600;
     letter-spacing:.08em;
@@ -594,7 +639,8 @@
     color:#fff;
   }
   .btn.primary:hover{background:var(--wine-600); border-color:var(--wine-600);}
-  .btn svg{width:14px;height:14px;}
+  .btn svg{width:14px;height:14px; transition:transform .2s cubic-bezier(.34,1.56,.64,1);}
+  .btn:hover svg{transform:scale(1.15) rotate(-8deg);}
 
   .toast{
     position:fixed;
@@ -626,7 +672,7 @@
   footer.note b{color:var(--ink);}
 
   @media (prefers-reduced-motion: reduce){
-    *{transition:none !important;}
+    *{transition:none !important; animation:none !important;}
   }
 </style>
 
@@ -643,9 +689,18 @@
 
   <div class="controls">
     <div class="mode-tabs" id="modeTabs" role="tablist" aria-label="Consultar por">
-      <button class="mode-tab" type="button" data-mode="tipo" aria-pressed="true">Tipo de Peça</button>
-      <button class="mode-tab" type="button" data-mode="responsavel" aria-pressed="false">Responsável</button>
-      <button class="mode-tab" type="button" data-mode="revisor" aria-pressed="false">Revisor/Orientador</button>
+      <button class="mode-tab" type="button" data-mode="tipo" aria-pressed="true">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>
+        <span>Tipo de Peça</span>
+      </button>
+      <button class="mode-tab" type="button" data-mode="responsavel" aria-pressed="false">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+        <span>Responsável</span>
+      </button>
+      <button class="mode-tab" type="button" data-mode="revisor" aria-pressed="false">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.6"/></svg>
+        <span>Revisor/Orientador</span>
+      </button>
     </div>
     <div class="search-row">
       <div class="search-box">
@@ -653,10 +708,11 @@
         <input id="q" type="text" autocomplete="off" placeholder="Buscar tipo de peça — ex.: agravo, contestação, alimentos…" aria-label="Buscar tipo de peça">
       </div>
       <label class="sugg-toggle">
+        <svg class="sugg-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 2l2.6 6.2 6.7.6-5.1 4.4 1.6 6.6L12 16.6 6.2 19.8l1.6-6.6L2.7 8.8l6.7-.6z"/></svg>
         <span class="switch">
           <input id="toggleSugg" type="checkbox" checked>
           <span class="track"></span>
-          <span class="thumb"></span>
+          <span class="thumb"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 2l2.6 6.2 6.7.6-5.1 4.4 1.6 6.6L12 16.6 6.2 19.8l1.6-6.6L2.7 8.8l6.7-.6z"/></svg></span>
         </span>
         Incluir sugestões
       </label>
@@ -800,6 +856,32 @@ function sevClass(comp){
   return ['','baixa','media','alta','altissima'][sevLevel(comp)];
 }
 
+function svgIcon(inner, cls, strokeW){
+  return `<svg class="${cls||''}" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="${strokeW||1.8}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+}
+const ICON = {
+  chevron: '<path d="M9 6l6 6-6 6"/>',
+  check: '<polyline points="20 6 9 17 4 12"/>',
+  person: '<circle cx="12" cy="8" r="3.4"/><path d="M5 20a7 7 0 0 1 14 0"/>',
+  eye: '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.6"/>',
+  gauge: '<path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l3.2-4.2"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  send: '<path d="M21 3 3 10.5l7 2.5 2.5 7L21 3Z"/><path d="M10.5 13 15 8.5"/>'
+};
+const CATEGORY_ICON = {
+  "Cível/Emp./Fam.": '<path d="M3 11l9-7 9 7"/><path d="M5 10v9h14v-9"/>',
+  "Condomínio": '<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 7.5h1M14 7.5h1M9 11.5h1M14 11.5h1M9 15.5h1M14 15.5h1"/>',
+  "Trabalhista": '<rect x="3" y="8" width="18" height="12" rx="1.5"/><path d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  "Criminal": '<path d="M12 3l7 3v6c0 5-3 8-7 9-4-1-7-4-7-9V6z"/>',
+  "Recursal": '<path d="M7 17 17 7"/><path d="M9 7h8v8"/>',
+  "Recursos Sup.": '<path d="M6 16l6-6 6 6"/><path d="M6 10l6-6 6 6"/>',
+  "Tributário/Fazenda": '<circle cx="7" cy="7" r="2"/><circle cx="17" cy="17" r="2"/><path d="M17 7 7 17"/>',
+  "Empresarial/Societário": '<path d="M4 20V12"/><path d="M10 20V6"/><path d="M16 20v-9"/>',
+  "Consumidor/Digital": '<path d="M6 8h12l-1 12H7z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
+  "Geral": '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  "Gestão/Monitoria": '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9z"/><path d="M8.5 12l1.5 1.5L13 10"/>'
+};
+
 const PLACEHOLDER_NAMES = new Set(['Responsável do processo','Todos']);
 const MODE_FIELD = { responsavel:3, revisor:4 };
 const MODE_LABEL = {
@@ -820,7 +902,7 @@ const toast = document.getElementById('toast');
 
 function buildChips(){
   catChips.innerHTML = CATS.map(c =>
-    `<button class="chip" type="button" data-cat="${c}" aria-pressed="false">${c}</button>`
+    `<button class="chip" type="button" data-cat="${c}" aria-pressed="false">${svgIcon(CATEGORY_ICON[c],'chip-icon')}<span>${c}</span></button>`
   ).join('');
   catChips.addEventListener('click', e=>{
     const b = e.target.closest('.chip');
@@ -937,6 +1019,7 @@ function renderTipoList(){
         <span class="item-sev sd ${sevClass(r[2])}" style="background:var(--sev-${sevClass(r[2])})"></span>
         <span class="item-title">${r[1]}</span>
         ${r[6]==='sugestao' ? '<span class="item-badge">sugestão</span>' : ''}
+        ${svgIcon(ICON.chevron,'row-chevron',2.2)}
       </button>`;
     }
     html += `</div>`;
@@ -965,6 +1048,7 @@ function renderPeopleList(){
       <span class="person-avatar">${initials(n)}</span>
       <span class="person-name">${n}</span>
       <span class="person-count">${map.get(n).length}</span>
+      ${svgIcon(ICON.chevron,'row-chevron',2.2)}
     </button>`;
   }).join('');
 }
@@ -988,23 +1072,23 @@ function renderTipoDetail(r){
 
     <div class="field-grid">
       <div class="field">
-        <label>Complexidade</label>
+        <label>${svgIcon(ICON.gauge,'field-icon')}Complexidade</label>
         <span class="sev-strip ${sc}"><span class="sd ${sc}"></span>${comp}</span>
       </div>
       <div class="field">
-        <label>SLA</label>
+        <label>${svgIcon(ICON.clock,'field-icon')}SLA</label>
         <div class="value pending">${status==='vigente' ? 'Não padronizado na matriz original' : 'A definir pela coordenação'}</div>
       </div>
       <div class="field emphasis">
-        <label>Responsável</label>
+        <label>${svgIcon(ICON.person,'field-icon')}Responsável</label>
         <div class="value">${chips(resp)}</div>
       </div>
       <div class="field">
-        <label>Revisor / Orientador</label>
+        <label>${svgIcon(ICON.eye,'field-icon')}Revisor / Orientador</label>
         <div class="value">${chips(rev)}</div>
       </div>
       <div class="field" style="grid-column:1/-1;">
-        <label>Protocolo / Envio</label>
+        <label>${svgIcon(ICON.send,'field-icon')}Protocolo / Envio</label>
         <div class="value">${chips(prot)}</div>
       </div>
     </div>
@@ -1018,7 +1102,7 @@ function renderTipoDetail(r){
   `;
   document.getElementById('copyBtn').addEventListener('click', ()=>{
     const text = `${tipo} (${cat})\nResponsável: ${resp||'a definir'}\nRevisor/Orientador: ${rev||'a definir'}\nProtocolo/Envio: ${prot||'a definir'}`;
-    navigator.clipboard.writeText(text).then(()=>showToast('Copiado para a área de transferência')).catch(()=>showToast('Não foi possível copiar'));
+    navigator.clipboard.writeText(text).then(()=>{ flashCopied('copyBtn','Copiar responsáveis'); showToast('Copiado para a área de transferência'); }).catch(()=>showToast('Não foi possível copiar'));
   });
 }
 
@@ -1049,6 +1133,7 @@ function renderPersonDetail(name, rows){
             <span class="assign-tipo">${r[1]}</span>
           </span>
           <span class="assign-other"><b>${otherLabel}</b>${otherVal}</span>
+          ${svgIcon(ICON.chevron,'row-chevron',2.2)}
         </button>`;
       }).join('')}
     </div>
@@ -1062,8 +1147,22 @@ function renderPersonDetail(name, rows){
   document.getElementById('copyListBtn').addEventListener('click', ()=>{
     const text = `${name} — ${roleTitle.toLowerCase()} ${rows.length} tipo(s) de peça:\n` +
       sorted.map(r=>`- ${r[1]} (${r[0]})`).join('\n');
-    navigator.clipboard.writeText(text).then(()=>showToast('Copiado para a área de transferência')).catch(()=>showToast('Não foi possível copiar'));
+    navigator.clipboard.writeText(text).then(()=>{ flashCopied('copyListBtn','Copiar lista'); showToast('Copiado para a área de transferência'); }).catch(()=>showToast('Não foi possível copiar'));
   });
+}
+
+function flashCopied(btnId, originalLabel){
+  const btn = document.getElementById(btnId);
+  if(!btn || btn.dataset.flashing) return;
+  btn.dataset.flashing = '1';
+  btn.innerHTML = `${svgIcon(ICON.check,'pop-icon',2.4)}${originalLabel.replace(/^Copiar/,'Copiado')}!`;
+  setTimeout(()=>{
+    const again = document.getElementById(btnId);
+    if(again){
+      again.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>${originalLabel}`;
+      delete again.dataset.flashing;
+    }
+  }, 1600);
 }
 
 let toastTimer;
