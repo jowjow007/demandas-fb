@@ -1778,7 +1778,7 @@ const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export
 const SHEET_CACHE_KEY = 'matrizDemandasSheetCache_v1';
 const SHEET_MIN_ROWS = 10; // se vier menos que isso, algo deu errado na busca — não sobrescreve
 
-let ROWS = FALLBACK_ROWS;
+let ROWS = normalizeRows(FALLBACK_ROWS);
 
 // Parser de CSV simples (RFC4180): trata campos entre aspas com vírgula/quebra de linha
 // internas e aspas duplicadas ("") como aspas literais — a planilha usa isso na coluna
@@ -1810,12 +1810,53 @@ function parseCSV(text){
 }
 function rowsFromCSV(text){
   const table = parseCSV(text).filter(r => r.some(cell => cell.trim() !== ''));
-  return table.slice(1).map(r => {
+  return normalizeRows(table.slice(1).map(r => {
     const cells = r.map(c => c.trim());
     while(cells.length < 12) cells.push('');
     return cells.slice(0,12);
-  }).filter(r => r[1]); // descarta linha sem "Tipo de Peça" preenchido
+  }).filter(r => r[1])); // descarta linha sem "Tipo de Peça" preenchido
 }
+
+// ---------- Normalização do nome da atividade ----------
+// Algumas linhas da planilha são digitadas em CAIXA ALTA. Para a matriz não
+// mostrar atividades "gritando", qualquer nome 100% maiúsculo vira Primeira
+// Letra Maiúscula (preposições/artigos curtos ficam minúsculos, exceto na
+// primeira palavra). Nomes que já vêm com case correto não são tocados —
+// preserva siglas como "PPSA", "LGPD", "CDC", "(RESE)" que estão em meio a
+// texto com minúsculas.
+const TITLE_CASE_STOPWORDS = new Set(['de','da','do','das','dos','e','em','a','à','ao','aos','com','para','por','no','na','nos','nas','ou']);
+function isShouting(str){
+  const letters = String(str||'').replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g, '');
+  return letters.length > 1 && letters === letters.toUpperCase() && letters !== letters.toLowerCase();
+}
+function titleCaseToken(token){
+  // maiúscula na 1ª letra e em cada início de "palavra" depois de "/" (ex.:
+  // "Acionistas/Quotistas"); depois de hífen continua minúsculo (ex.: "Pré-executividade")
+  let capitalizeNext = true;
+  return token.split('').map(ch=>{
+    if(/[A-Za-zÀ-ÖØ-öø-ÿ]/.test(ch)){
+      if(capitalizeNext){ capitalizeNext = false; return ch.toUpperCase(); }
+      return ch.toLowerCase();
+    }
+    if(ch === '/') capitalizeNext = true;
+    return ch;
+  }).join('');
+}
+function toTitleCaseIfShouting(str){
+  if(!str || !isShouting(str)) return str;
+  return str.split(' ').map((w,i)=>{
+    const bare = w.toLowerCase().replace(/[().,;:]/g,'');
+    return (i>0 && TITLE_CASE_STOPWORDS.has(bare)) ? w.toLowerCase() : titleCaseToken(w);
+  }).join(' ');
+}
+function normalizeRows(rows){
+  return rows.map(r=>{
+    const copy = r.slice();
+    copy[1] = toTitleCaseIfShouting(copy[1]); // só a coluna "Tipo de Peça" (atividade)
+    return copy;
+  });
+}
+
 function readSheetCache(){
   try{
     const raw = localStorage.getItem(SHEET_CACHE_KEY);
@@ -1860,7 +1901,7 @@ async function loadRowsFromSheet(isRetry){
   } catch(err){
     console.warn('Matriz de Demandas: falha ao buscar a planilha, mantendo dados locais.', err);
     const cached = readSheetCache();
-    if(cached){ ROWS = cached.rows; setSyncStatus('cache', cached.ts); }
+    if(cached){ ROWS = normalizeRows(cached.rows); setSyncStatus('cache', cached.ts); }
     else setSyncStatus('fallback');
   }
   buildChips();
@@ -2908,7 +2949,7 @@ feedbackForm.addEventListener('submit', async (e)=>{
 
 (function useLastKnownGoodCacheBeforeFirstPaint(){
   const cached = readSheetCache();
-  if(cached){ ROWS = cached.rows; }
+  if(cached){ ROWS = normalizeRows(cached.rows); }
 })();
 
 buildChips();
