@@ -127,6 +127,20 @@
   ::-webkit-scrollbar-thumb{background:var(--wine-700);border-radius:7px;border:2px solid var(--surface-2);background-clip:padding-box;}
   ::-webkit-scrollbar-thumb:hover{background:var(--wine-600);}
   ::-webkit-scrollbar-corner{background:var(--surface-2);}
+  /* Transição das telas (Atividade/Responsável/.../Calendário): a tela nova "nasce" do
+     botão da aba que foi clicada (transform-origin no X do botão) e cresce até o tamanho
+     normal, em vez de só aparecer/sumir na hora — fica evidente de onde ela saiu. */
+  .mode-panel-anim{
+    transition: opacity .32s cubic-bezier(.34,1.3,.64,1), transform .38s cubic-bezier(.34,1.3,.64,1);
+    transform-origin: var(--origin-x, 50%) 0%;
+    will-change: transform, opacity;
+  }
+  .mp-entering{opacity:0; transform: scale(.82) translateY(-16px);}
+  .mp-entered{opacity:1; transform: scale(1) translateY(0);}
+  .mp-leaving{opacity:0; transform: scale(.9) translateY(-10px); transition: opacity .2s ease, transform .22s ease;}
+  @media (prefers-reduced-motion: reduce){
+    .mode-panel-anim, .mp-entering, .mp-entered, .mp-leaving{transition:none!important; transform:none!important;}
+  }
   html,body{margin:0;padding:0;}
   body{
     background:var(--ground);
@@ -1357,7 +1371,7 @@
   <header class="masthead">
     <div class="tool-title">
       <h1>Matriz de Demandas</h1>
-      <p>Consulta rápida de atividades &amp; responsáveis · <span style="opacity:.7">v49</span>
+      <p>Consulta rápida de atividades &amp; responsáveis · <span style="opacity:.7">v50</span>
         <span id="syncStatus" class="sync-status" role="status" aria-live="polite"></span>
         <button type="button" id="syncRefreshBtn" class="sync-refresh-btn" title="Buscar de novo na planilha">↻</button>
       </p>
@@ -1395,7 +1409,7 @@
         <span>Calendário</span>
       </button>
     </div>
-    <div class="lookup-controls" id="lookupControls">
+    <div class="lookup-controls mode-panel-anim" id="lookupControls">
       <div class="search-row">
         <div class="search-box">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -1416,7 +1430,7 @@
     </div>
   </div>
 
-  <div class="console" id="console">
+  <div class="console mode-panel-anim" id="console">
     <div class="sidebar-col">
       <nav class="panel list-panel" id="listPanel" aria-label="Resultados"></nav>
 
@@ -1452,7 +1466,7 @@
     </section>
   </div>
 
-  <section class="panel calc-panel" id="calcPanel" style="display:none">
+  <section class="panel calc-panel mode-panel-anim" id="calcPanel" style="display:none">
     <div class="calc-head">
       <h2>Calculadora de Prazo</h2>
       <p>Informe a data de publicação/recebimento e a quantidade de dias de cada prazo. O dia da publicação não entra na contagem — a contagem começa no dia seguinte, como determina o CPC (art. 224) e o Código Civil (art. 132) para prazos em geral.</p>
@@ -1479,7 +1493,7 @@
     <p class="calc-footnote">Contagem em dias úteis considera apenas <b>sábados, domingos e feriados nacionais</b> (Confraternização Universal, Sexta-feira da Paixão, Tiradentes, Dia do Trabalho, Independência, Nossa Senhora Aparecida, Finados, Proclamação da República, Consciência Negra e Natal) — não considera Carnaval, Corpus Christi, recesso forense nem feriados estaduais/municipais, que variam por tribunal e comarca. Se o resultado em dias corridos cair em dia não útil, mostramos também a data prorrogada.</p>
   </section>
 
-  <section class="panel guide-panel" id="guiaPanel" style="display:none">
+  <section class="panel guide-panel mode-panel-anim" id="guiaPanel" style="display:none">
     <div class="calc-head">
       <h2>Como Usar o Sistema</h2>
       <p>Fluxo resumido — da escolha da aba até calcular o prazo exato de uma atividade.</p>
@@ -1593,7 +1607,7 @@
     </div>
   </section>
 
-  <section class="panel feedback-panel" id="feedbackPanel" style="display:none">
+  <section class="panel feedback-panel mode-panel-anim" id="feedbackPanel" style="display:none">
     <div class="calc-head">
       <h2>💡 Sugestões de Melhoria</h2>
       <p>Encontrou algo que poderia funcionar melhor, ou tem uma ideia para o sistema? Escreva abaixo — a sugestão vai direto para a coordenação.</p>
@@ -1620,7 +1634,7 @@
     <p class="calc-footnote">As sugestões vão direto para <b>jonathan@fonsecaebraga.com.br</b>, automaticamente — não precisa abrir nem enviar nada em outro lugar.</p>
   </section>
 
-  <section class="panel calendar-tab-panel" id="calendarTabPanel" style="display:none">
+  <section class="panel calendar-tab-panel mode-panel-anim" id="calendarTabPanel" style="display:none">
     <div class="calc-head">
       <h2>Calendário Forense</h2>
       <p>Consulte se um dia é útil ou não útil por mês e ano, com destaque para os feriados nacionais do Brasil. Calculado automaticamente — sem necessidade de atualização manual.</p>
@@ -1965,6 +1979,61 @@ const calcPanel = document.getElementById('calcPanel');
 const guiaPanel = document.getElementById('guiaPanel');
 const feedbackPanel = document.getElementById('feedbackPanel');
 const calendarTabPanel = document.getElementById('calendarTabPanel');
+
+// ---------- Transição animada entre as telas (abas Atividade/Responsável/.../Calendário) ----------
+// Cada "tela" é um desses painéis, mostrados/escondidos um de cada vez. Em vez de só trocar o
+// display na hora, a tela nova nasce (escala pequena, sem opacidade) a partir do X do botão da
+// aba clicada e cresce até o tamanho normal — fica visualmente claro de onde ela "saiu".
+const PANEL_DISPLAY = new Map([
+  [lookupControls, 'flex'], [consoleEl, 'grid'], [calcPanel, 'block'],
+  [guiaPanel, 'block'], [feedbackPanel, 'block'], [calendarTabPanel, 'block']
+]);
+const ALL_MODE_PANELS = [lookupControls, consoleEl, calcPanel, guiaPanel, feedbackPanel, calendarTabPanel];
+function panelsDoModo(mode){
+  if (mode==='tipo' || mode==='responsavel' || mode==='revisor') return [lookupControls, consoleEl];
+  if (mode==='calculadora') return [calcPanel];
+  if (mode==='guia') return [guiaPanel];
+  if (mode==='feedback') return [feedbackPanel];
+  if (mode==='calendario') return [calendarTabPanel];
+  return [];
+}
+function trocarPainelVisivel(novoMode, origemBtn){
+  // getComputedStyle (não só o style inline) porque lookupControls/consoleEl ficam visíveis
+  // por padrão via CSS externo, sem display definido no atributo style no HTML original.
+  const antigos = ALL_MODE_PANELS.filter(el => getComputedStyle(el).display !== 'none');
+  const novos = panelsDoModo(novoMode);
+
+  antigos.forEach(el => {
+    if (novos.includes(el)) return; // continua visível (ex.: trocando entre Atividade/Responsável/Revisor)
+    el.classList.remove('mp-entered');
+    el.classList.add('mp-leaving');
+    setTimeout(() => {
+      el.style.display = 'none';
+      el.classList.remove('mp-leaving');
+    }, 220);
+  });
+
+  novos.forEach(el => {
+    const jaVisivel = antigos.includes(el);
+    if (!jaVisivel) el.style.display = PANEL_DISPLAY.get(el);
+    if (origemBtn) {
+      const bRect = origemBtn.getBoundingClientRect();
+      const pRect = el.getBoundingClientRect();
+      const originX = pRect.width ? (((bRect.left + bRect.width / 2) - pRect.left) / pRect.width * 100) : 50;
+      el.style.setProperty('--origin-x', Math.max(0, Math.min(100, originX)) + '%');
+    }
+    if (!jaVisivel) {
+      el.classList.remove('mp-leaving', 'mp-entered');
+      el.classList.add('mp-entering');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          el.classList.remove('mp-entering');
+          el.classList.add('mp-entered');
+        });
+      });
+    }
+  });
+}
 const calMonthSelect = document.getElementById('calMonth');
 const calYearSelect = document.getElementById('calYear');
 const calTodayBtn = document.getElementById('calToday');
@@ -2671,17 +2740,12 @@ document.addEventListener('click', e=>{
   copyText(date).then(()=>showToast('Data copiada!')).catch(()=>showToast('Não foi possível copiar'));
 });
 
-function updateModeUI(){
+function updateModeUI(origemBtn){
   modeTabs.querySelectorAll('.mode-tab').forEach(b=>{
     b.setAttribute('aria-pressed', String(b.dataset.mode===state.mode));
   });
   const isLookup = state.mode==='tipo' || state.mode==='responsavel' || state.mode==='revisor';
-  lookupControls.style.display = isLookup ? 'flex' : 'none';
-  consoleEl.style.display = isLookup ? 'grid' : 'none';
-  calcPanel.style.display = state.mode==='calculadora' ? 'block' : 'none';
-  guiaPanel.style.display = state.mode==='guia' ? 'block' : 'none';
-  feedbackPanel.style.display = state.mode==='feedback' ? 'block' : 'none';
-  calendarTabPanel.style.display = state.mode==='calendario' ? 'block' : 'none';
+  trocarPainelVisivel(state.mode, origemBtn);
   if(state.mode==='guia') initGuide();
   else stopGuide();
   if(state.mode==='calendario') renderCalTabGrid();
@@ -2698,7 +2762,7 @@ modeTabs.addEventListener('click', e=>{
   state.mode = b.dataset.mode;
   state.q = '';
   qInput.value = '';
-  updateModeUI();
+  updateModeUI(b);
   render();
 });
 
