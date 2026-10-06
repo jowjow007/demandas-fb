@@ -9,6 +9,12 @@
   window.addEventListener('storage', function(e){
     if (e.key === 'fb-portal-theme') sync(e.newValue);
   });
+  // Hospedado em outro domínio que o Portal (github.io vs. domínio próprio):
+  // localStorage/storage não cruzam origem, então o Portal também manda o
+  // tema por postMessage quando esta ferramenta é aberta dentro do iframe dele.
+  window.addEventListener('message', function(e){
+    if (e.data && e.data.type === 'fb-portal-theme') sync(e.data.theme);
+  });
 })();
 </script>
 <style>
@@ -1350,7 +1356,7 @@
   <header class="masthead">
     <div class="tool-title">
       <h1>Matriz de Demandas</h1>
-      <p>Consulta rápida de atividades &amp; responsáveis · <span style="opacity:.7">v51</span>
+      <p>Consulta rápida de atividades &amp; responsáveis · <span style="opacity:.7">v52</span>
         <span id="syncStatus" class="sync-status" role="status" aria-live="polite"></span>
         <button type="button" id="syncRefreshBtn" class="sync-refresh-btn" title="Buscar de novo na planilha">↻</button>
       </p>
