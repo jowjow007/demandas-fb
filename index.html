@@ -1,4 +1,16 @@
 <title>Matriz de Demandas — Fonseca e Braga</title>
+<script>
+(function(){
+  function sync(theme){
+    if (theme === 'light') document.documentElement.setAttribute('data-theme','light');
+    else document.documentElement.setAttribute('data-theme','dark');
+  }
+  try{ sync(localStorage.getItem('fb-portal-theme')); }catch(e){}
+  window.addEventListener('storage', function(e){
+    if (e.key === 'fb-portal-theme') sync(e.newValue);
+  });
+})();
+</script>
 <style>
   @font-face{
     font-family:'Cormorant Garamond';font-style:normal;font-weight:500;font-display:swap;
@@ -59,39 +71,6 @@
     --forma-corrido:#a15b1f; --forma-corrido-bg:#f5e6d3;
     --recommend:#189a53; --recommend-bg:#c8f3da;
     --astrea-tag:#e07318; --blood-red:#8b0000;
-  }
-  @media (prefers-color-scheme: dark){
-    :root{
-      --wine-900:#180a0c;
-      --wine-700:#c1495b;
-      --wine-600:#d6647a;
-      --wine-500:#e58a9a;
-      --pewter:#8f8b8c;
-      --pewter-line:#4a4243;
-      --ink:#f3ece9;
-      --ink-soft:#c9bcb9;
-      --ground:#1c1214;
-      --surface:#241619;
-      --surface-2:#2b1a1d;
-      --border:#3d282b;
-      --sev-baixa:#8fd6ae;
-      --sev-media:#e3b95f;
-      --sev-alta:#e2896c;
-      --sev-altissima:#e88a97;
-      --sev-baixa-bg:#1f3327;
-      --sev-media-bg:#3a2e17;
-      --sev-alta-bg:#3a2118;
-      --sev-altissima-bg:#3a1a20;
-      --focus:#e58a9a;
-      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -8px rgba(0,0,0,.6);
-      --calc-bg:#2a1a1e;
-      --calc-border:#4a2c32;
-      --calc-card:#331e23;
-      --forma-util:#8fc2e8; --forma-util-bg:#1c2b35;
-      --forma-corrido:#e8a15f; --forma-corrido-bg:#362615;
-      --recommend:#4fe38f; --recommend-bg:#0f3d24;
-      --astrea-tag:#e8821f; --blood-red:#e5484d;
-    }
   }
   :root[data-theme="dark"]{
     --wine-900:#180a0c; --wine-700:#c1495b; --wine-600:#d6647a; --wine-500:#e58a9a;
@@ -1371,7 +1350,7 @@
   <header class="masthead">
     <div class="tool-title">
       <h1>Matriz de Demandas</h1>
-      <p>Consulta rápida de atividades &amp; responsáveis · <span style="opacity:.7">v50</span>
+      <p>Consulta rápida de atividades &amp; responsáveis · <span style="opacity:.7">v51</span>
         <span id="syncStatus" class="sync-status" role="status" aria-live="polite"></span>
         <button type="button" id="syncRefreshBtn" class="sync-refresh-btn" title="Buscar de novo na planilha">↻</button>
       </p>
